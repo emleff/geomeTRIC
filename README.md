@@ -37,8 +37,7 @@ https://doi.org/10.1021/acs.jctc.5c01540
 ## Quick Help
 
 Package dependencies are:
-Python 2.7, 3.8+
-NumPy, Scipy, NetworkX
+Python 3.8+, NumPy (version 1.x), Scipy, NetworkX
 
 To install the code from source, run "python setup.py install".
 To install the latest release from pip, run "pip install geometric".
