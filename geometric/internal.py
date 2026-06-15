@@ -232,6 +232,9 @@ class CartesianX(PrimitiveCoordinate):
         xyz = xyz.reshape(-1,3)
         deriv2 = np.zeros((xyz.shape[0], xyz.shape[1], xyz.shape[0], xyz.shape[1]))
         return deriv2
+
+    def getAtoms(self):
+        return list(self.a)
     
 class CartesianY(PrimitiveCoordinate):
     def __init__(self, a, w=1.0):
@@ -270,6 +273,9 @@ class CartesianY(PrimitiveCoordinate):
         deriv2 = np.zeros((xyz.shape[0], xyz.shape[1], xyz.shape[0], xyz.shape[1]))
         return deriv2
 
+    def getAtoms(self):
+        return list(self.a)
+
 class CartesianZ(PrimitiveCoordinate):
     def __init__(self, a, w=1.0):
         self.a = a
@@ -306,6 +312,9 @@ class CartesianZ(PrimitiveCoordinate):
         xyz = xyz.reshape(-1,3)
         deriv2 = np.zeros((xyz.shape[0], xyz.shape[1], xyz.shape[0], xyz.shape[1]))
         return deriv2
+
+    def getAtoms(self):
+        return [self.a]
 
 def IsTR(Prim):
     return type(Prim) in (TranslationX, TranslationY, TranslationZ,
@@ -363,6 +372,9 @@ class TranslationX(PrimitiveCoordinate):
         xyz = xyz.reshape(-1,3)
         deriv2 = np.zeros((xyz.shape[0], xyz.shape[1], xyz.shape[0], xyz.shape[1]))
         return deriv2
+
+    def getAtoms(self):
+        return list(self.a)
     
 class TranslationY(object):
     def __init__(self, a, w):
@@ -416,6 +428,9 @@ class TranslationY(object):
         deriv2 = np.zeros((xyz.shape[0], xyz.shape[1], xyz.shape[0], xyz.shape[1]))
         return deriv2
 
+    def getAtoms(self):
+        return list(self.a)
+
 class TranslationZ(PrimitiveCoordinate):
     def __init__(self, a, w):
         self.a = a
@@ -467,6 +482,9 @@ class TranslationZ(PrimitiveCoordinate):
         xyz = xyz.reshape(-1,3)
         deriv2 = np.zeros((xyz.shape[0], xyz.shape[1], xyz.shape[0], xyz.shape[1]))
         return deriv2
+
+    def getAtoms(self):
+        return list(self.a)
 
 class Rotator(object):
 
@@ -643,6 +661,9 @@ class Rotator(object):
                     second_derivatives[a, :, b, :, :] = deriv2_raw[i, :, j, :, :]
             # derivatives, second_derivatives = get_expmap_der(xsel, ysel, second=True, r=self.rnorm*self.rquat)
             return second_derivatives
+
+    def getAtoms(self):
+        return list(self.a)
         
 class RotationA(PrimitiveCoordinate):
     def __init__(self, a, x0, Rotators, w=1.0):
@@ -686,6 +707,9 @@ class RotationA(PrimitiveCoordinate):
         deriv2_all = self.Rotator.second_derivative(xyz)
         second_derivatives = deriv2_all[:, :, :, :, 0]*self.w
         return second_derivatives
+
+    def getAtoms(self):
+        return list(self.a)
     
 class RotationB(PrimitiveCoordinate):
     def __init__(self, a, x0, Rotators, w=1.0):
@@ -730,6 +754,9 @@ class RotationB(PrimitiveCoordinate):
         second_derivatives = deriv2_all[:, :, :, :, 1]*self.w
         return second_derivatives
 
+    def getAtoms(self):
+        return list(self.a)
+
 class RotationC(PrimitiveCoordinate):
     def __init__(self, a, x0, Rotators, w=1.0):
         self.a = tuple(sorted(a))
@@ -772,6 +799,9 @@ class RotationC(PrimitiveCoordinate):
         deriv2_all = self.Rotator.second_derivative(xyz)
         second_derivatives = deriv2_all[:, :, :, :, 2]*self.w
         return second_derivatives
+
+    def getAtoms(self):
+        return list(self.a)
 
 class CentroidDistance(PrimitiveCoordinate):
     def __init__(self, a, b):
@@ -871,6 +901,9 @@ class CentroidDistance(PrimitiveCoordinate):
 
         return deriv2
     
+    def getAtoms(self):
+        return [self.a,self.b]
+    
 class Distance(PrimitiveCoordinate):
     def __init__(self, a, b):
         self.a = a
@@ -925,6 +958,9 @@ class Distance(PrimitiveCoordinate):
         deriv2[m, :, n, :] = mtx
         deriv2[n, :, m, :] = mtx
         return deriv2
+
+    def getAtoms(self):
+        return [self.a,self.b]
     
 class Angle(PrimitiveCoordinate):
     def __init__(self, a, b, c):
@@ -1064,6 +1100,9 @@ class Angle(PrimitiveCoordinate):
                                       + zeta(a, n, o)*zeta(b, m, o)*term4
                                       - (cq/sq) * np.outer(der1[a], der1[b]))
         return deriv2
+
+    def getAtoms(self):
+        return [self.a,self.b,self.c]
 
 class LinearAngle(PrimitiveCoordinate):
     def __init__(self, a, b, c, axis):
@@ -1259,6 +1298,9 @@ class LinearAngle(PrimitiveCoordinate):
                 deriv2[ii, j, :, :] = fderiv
         return deriv2
     
+    def getAtoms(self):
+        return [self.a,self.b,self.c]
+    
 class MultiAngle(PrimitiveCoordinate): # pragma: no cover
     def __init__(self, a, b, c):
         if type(a) is int:
@@ -1371,6 +1413,9 @@ class MultiAngle(PrimitiveCoordinate): # pragma: no cover
     
     def second_derivative(self, xyz):
         raise NotImplementedError("Second derivatives have not been implemented for IC type %s" % self.__name__)
+
+    def getAtoms(self):
+        return [self.a,self.b,self.c]
 
 class Dihedral(PrimitiveCoordinate):
     def __init__(self, a, b, c, d):
@@ -1523,6 +1568,9 @@ class Dihedral(PrimitiveCoordinate):
                     deriv2[a, :, b, :] += ((zeta(a, m, o)*zeta(b, p, o) + zeta(a, p, o)*zeta(b, o, m))*term7 +
                                            (zeta(a, n, o)*zeta(b, p, o) + zeta(a, p, o)*zeta(b, o, n))*term8)
         return deriv2
+
+    def getAtoms(self):
+        return [self.a,self.b,self.c,self.d]
                     
         # Accumulate a dictionary of contributions to the second derivatives by term (for debugging)
         #             deriv2_terms[7][a, :, b, :] = (zeta(a, m, o)*zeta(b, p, o) + zeta(a, p, o)*zeta(b, o, m))*term7
@@ -1648,10 +1696,10 @@ class MultiDihedral(PrimitiveCoordinate): # pragma: no cover
         else:
             term2 = cross_product(v, w) / (v_norm * (1 - np.dot(v, w)**2))
             term4 = cross_product(v, w) * np.dot(v, w) / (w_norm * (1 - np.dot(v, w)**2))
-        # term1 = cross_product(u, w) / (u_norm * (1 - np.dot(u, w)**2))
-        # term2 = cross_product(v, w) / (v_norm * (1 - np.dot(v, w)**2))
-        # term3 = cross_product(u, w) * np.dot(u, w) / (w_norm * (1 - np.dot(u, w)**2))
-        # term4 = cross_product(v, w) * np.dot(v, w) / (w_norm * (1 - np.dot(v, w)**2))
+        # term1 = np.cross(u, w) / (u_norm * (1 - np.dot(u, w)**2))
+        # term2 = np.cross(v, w) / (v_norm * (1 - np.dot(v, w)**2))
+        # term3 = np.cross(u, w) * np.dot(u, w) / (w_norm * (1 - np.dot(u, w)**2))
+        # term4 = np.cross(v, w) * np.dot(v, w) / (w_norm * (1 - np.dot(v, w)**2))
         for i in self.a:
             derivatives[i, :] = term1/len(self.a)
         for i in self.d:
@@ -1663,6 +1711,9 @@ class MultiDihedral(PrimitiveCoordinate): # pragma: no cover
     def second_derivative(self, xyz):
         raise NotImplementedError("Second derivatives have not been implemented for IC type %s" % self.__name__)
 
+    def getAtoms(self):
+        return[self.a,self.b,self.c,self.d]
+    
 class OutOfPlane(PrimitiveCoordinate):
     def __init__(self, a, b, c, d):
         self.a = a
@@ -1743,10 +1794,10 @@ class OutOfPlane(PrimitiveCoordinate):
         else:
             term2 = cross_product(v, w) / (v_norm * (1 - np.dot(v, w)**2))
             term4 = cross_product(v, w) * np.dot(v, w) / (w_norm * (1 - np.dot(v, w)**2))
-        # term1 = cross_product(u, w) / (u_norm * (1 - np.dot(u, w)**2))
-        # term2 = cross_product(v, w) / (v_norm * (1 - np.dot(v, w)**2))
-        # term3 = cross_product(u, w) * np.dot(u, w) / (w_norm * (1 - np.dot(u, w)**2))
-        # term4 = cross_product(v, w) * np.dot(v, w) / (w_norm * (1 - np.dot(v, w)**2))
+        # term1 = np.cross(u, w) / (u_norm * (1 - np.dot(u, w)**2))
+        # term2 = np.cross(v, w) / (v_norm * (1 - np.dot(v, w)**2))
+        # term3 = np.cross(u, w) * np.dot(u, w) / (w_norm * (1 - np.dot(u, w)**2))
+        # term4 = np.cross(v, w) * np.dot(v, w) / (w_norm * (1 - np.dot(v, w)**2))
         derivatives[m, :] = term1
         derivatives[n, :] = -term2
         derivatives[o, :] = -term1 + term3 - term4
@@ -1772,6 +1823,9 @@ class OutOfPlane(PrimitiveCoordinate):
                 fderiv = (FPlus-FMinus)/(2*h)
                 deriv2[ii, j, :, :] = fderiv
         return deriv2
+
+    def getAtoms(self):
+        return[self.a,self.b,self.c,self.d]
 
 def convert_angstroms_degrees(prims, values):
     """ Convert values of primitive ICs (or differences) from
@@ -1836,13 +1890,14 @@ class InternalCoordinates(object):
         Given Cartesian coordinates xyz, return the Wilson B-matrix
         given by dq_i/dx_j where x is flattened (i.e. x1, y1, z1, x2, y2, z2)
         """
+        cached_bmatrix_used = False
         global CacheWarning
-        t0 = time.time()
         xhash = hash(xyz.tobytes())
-        ht = time.time() - t0
+        # print("In wilsonB: xhash = ", xhash)
         if xhash in self.stored_wilsonB:
             ans = self.stored_wilsonB[xhash]
-            # logger.info("Using cached B-matrix : %i from end\n" % (len(self.stored_wilsonB) - list(self.stored_wilsonB.keys()).index(xhash)))
+            logger.info("Using cached B-matrix : %i from end\n" % (len(self.stored_wilsonB) - list(self.stored_wilsonB.keys()).index(xhash)))
+            cached_bmatrix_used = True
             return ans
         WilsonB = []
         Der = self.derivatives(xyz)
@@ -1850,8 +1905,8 @@ class InternalCoordinates(object):
             WilsonB.append(Der[i].flatten())
         self.stored_wilsonB[xhash] = np.array(WilsonB)
         self.trimCache()
-        if len(self.stored_wilsonB) > 1000 and not CacheWarning:
-            logger.warning("\x1b[91mWarning: more than 1000 B-matrices stored, memory leaks likely\x1b[0m\n")
+        if len(self.stored_wilsonB) > 10000 and not CacheWarning:
+            logger.warning("\x1b[91mWarning: more than 10000 B-matrices stored, memory leaks likely\x1b[0m\n")
             CacheWarning = True
         ans = np.array(WilsonB)
         return ans
@@ -1870,7 +1925,7 @@ class InternalCoordinates(object):
             Bmat /= np.tile(np.sqrt(self.mass), (len(self.Internals), 1))
         BuBt = np.dot(Bmat,Bmat.T)
         return BuBt
-
+        
     def MWGInverse_Sqrt_SVD(self, xyz):
         xyz = xyz.reshape(-1, 3)
         """
@@ -1973,13 +2028,11 @@ class InternalCoordinates(object):
                 if np.abs(value) > 1e-6:
                     LargeVals += 1
                     Sinv[ival] = 1/value
-
+    
             # print "%i atoms; %i/%i singular values are > 1e-6" % (xyz.shape[0], LargeVals, len(S))
-
             Sinv = np.diag(Sinv)
             Inv = multi_dot([V, Sinv, UT])
        
-
         self.stored_Ginverse[xhash] = Inv
         self.trimCache()
         if len(self.stored_Ginverse) > 10000 and not CacheWarning:
@@ -2061,8 +2114,7 @@ class InternalCoordinates(object):
                         PMDiff1 = self.calcDiff(x1, x2)
                         PMDiff2 = self.calcDiff(x4, x3)
                         FiniteDifference[:, j, m, k, n] += (PMDiff1+PMDiff2)/(4*h**2)
-        #                 print('\r%i %i' % (j, k), end='')
-        # print()
+        # print('\r%i %i' % (j, k), end='')
         for i in range(Analytical.shape[0]):
             title = "%20s : %20s" % ("IC %i/%i" % (i+1, Analytical.shape[0]), self.Internals[i])
             lines = [title]
@@ -2279,13 +2331,15 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
         # connect = False, addcart = False corresponds to TRIC
         self.addcart = addcart
         self.connect_isolated = connect_isolated
-        if 'rigid' in kwargs and kwargs['rigid'] is not None and kwargs['rigid']:
+        if 'rigid' in kwargs and kwargs['rigid'] is not None:
             raise RuntimeError('Do not use rigid molecules with PrimitiveInternalCoordinates')
         self.Internals = []
         self.cPrims = []
         self.cVals = []
         self.Rotators = OrderedDict()
         self.elem = molecule.elem
+        self.na = molecule.na
+        self.numPrimsPerFragment = []
         # Atomic mass array
         self.mass = np.repeat([PeriodicTable[i] for i in self.elem], 3)
         # List of fragments as determined by residue ID, distance criteria or bond order
@@ -2328,14 +2382,12 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
                     j = molecule.get_closest_atom(i, pbc=False)[0]
                     logger.info("Creating artificial bond to isolated atom: %i-%i\n" % (i+1, j+1))
                     molecule.bonds.append((i, j))
-                old_read_bonds = molecule.top_settings['read_bonds']
-                molecule.top_settings['read_bonds'] = True
-                molecule.build_topology(force_bonds=False)
-                molecule.top_settings['read_bonds'] = old_read_bonds
+                molecule.build_topology()
                 frags = [list(m.nodes()) for m in molecule.molecules]
-        # Make frags accessible from outside.
+                
+        # Make frags accessible from the outside
         self.frags = frags
-            
+        
         # coordinates in Angstrom
         coords = molecule.xyzs[0].flatten()
         # Make a distance matrix mapping atom pairs to interatomic distances
@@ -2439,6 +2491,7 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
         #                 noncov.append((conn_a, conn_b))
 
         # Add an internal coordinate for bonded atom pairs
+        dis_atoms = []
         for (a, b) in molecule.topology.edges():
             self.add(Distance(a, b))
 
@@ -2730,6 +2783,17 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
         for rot in self.Rotators.values():
             rot.reset(xyz)
 
+    def getFragmentOfPrimitive(self, prim):
+        prim_atoms = []
+        frag_number = []
+        for i in prim.getAtoms():
+            prim_atoms.append(i)
+            for j in range(len(self.frags)):
+                if i in self.frags[j]:
+                    frag_number.append(j)
+                        
+        return sorted(list(set(frag_number)))
+    
     def torsionConstraintLinearAngles(self, coords, thre=175):
         """
         Check if a torsion constrained optimization is about to fail
@@ -2868,15 +2932,38 @@ class PrimitiveInternalCoordinates(InternalCoordinates):
     def reorderPrimitives(self):
         # Reorder primitives to be in line with cc's code
         newPrims = []
+        frag_prims = []
+        reordered_prims = []
+        numPrimsPerFragment = []
         for cPrim in self.cPrims:
             newPrims.append(cPrim)
-        for typ in [Distance, Angle, LinearAngle, MultiAngle, OutOfPlane, Dihedral, MultiDihedral, CartesianX, CartesianY, CartesianZ, TranslationX, TranslationY, TranslationZ, RotationA, RotationB, RotationC]:
+        for typ in [Distance, Angle, LinearAngle, MultiAngle, OutOfPlane, Dihedral, MultiDihedral, CartesianX, CartesianY, CartesianZ, TranslationX, TranslationY, TranslationZ, RotationA, RotationB, RotationC, CentroidDistance]:
             for p in self.Internals:
                 if type(p) is typ and p not in self.cPrims:
                     newPrims.append(p)
         if len(newPrims) != len(self.Internals):
             raise RuntimeError("Not all internal coordinates have been accounted for. You may need to add something to reorderPrimitives()")
         self.Internals = newPrims
+        
+        # Retrieving the associated fragment number for each primitive
+        for p in self.Internals:
+            frag_prims.append(self.getFragmentOfPrimitive(p))
+
+        # Ordering the primitives based on the fragment number they belong to
+        for i in range(len(self.frags)):
+            for j in range(len(frag_prims)):
+                if i == frag_prims[j][0]:
+                    reordered_prims.append(self.Internals[j])
+            # Retrieve number of primitives per fragment
+            if not numPrimsPerFragment:
+                numPrimsPerFragment.append(len(reordered_prims))
+            else:
+                numPrimsPerFragment.append(len(reordered_prims) - sum(numPrimsPerFragment))
+        
+        self.Internals = reordered_prims
+        self.numPrimsPerFragment = numPrimsPerFragment
+        
+        return newPrims
 
     def getConstraints_from(self, other):
         if other.haveConstraints():
@@ -3597,6 +3684,7 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
 
     def build_dlc(self, xyz):
         if self.conmethod == 1:
+            logger.info("build_dlc has been called")
             return self.build_dlc_1(xyz)
         elif self.conmethod == 0:
             return self.build_dlc_0(xyz)
@@ -3796,7 +3884,394 @@ class DelocalizedInternalCoordinates(InternalCoordinates):
     def resetRotations(self, xyz):
         """ Reset the reference geometries for calculating the orientational variables. """
         self.Prims.resetRotations(xyz)
+        
+class NestedInternalCoordinates(InternalCoordinates):
+    def __init__(self, molecule, connect=False, addcart=False, constraints=None, cvals=None, connect_isolated=True, imagenr=0, build=True, rigid=False, remove_tr=False, cart_only=False, conmethod=0, delocalized=True, **kwargs):
+        super(NestedInternalCoordinates).__init__()
+        # Noting if NPIC or NDLC is called in order to control printing of Hessian Eigenvalues
+        global NIC_called
+        NIC_called = True
+        self.Prims = PrimitiveInternalCoordinates(molecule, connect=connect, addcart=addcart, constraints=constraints, cvals=cvals, connect_isolated=connect_isolated)
+        self.DLC = DelocalizedInternalCoordinates(molecule, imagenr=imagenr, build=build, connect=connect, constraints=constraints, cvals=cvals, rigid=rigid, remove_tr=remove_tr, cart_only=cart_only, conmethod=conmethod, connect_isolated=connect_isolated)
+        self.frags = self.Prims.frags
+        self.cPrims = self.Prims.cPrims
+        self.Rotators = self.Prims.Rotators
+        self.sub_ICs = []
+        global sub_ics
+        sub_ics = self.sub_ICs
+        self.Internals = self.Prims.Internals
+        self.stored_wilsonB = OrderedDict()
+        self.stored_Ginverse = OrderedDict()
+        for frag in self.frags:
+            mol_frag = molecule.atom_select(frag)
+            if delocalized is True:
+                self.sub_ICs.append(DelocalizedInternalCoordinates(mol_frag, imagenr=imagenr, build=build, connect=connect, constraints=constraints,
+                                                           cvals=cvals, rigid=rigid, remove_tr=remove_tr, cart_only=cart_only, conmethod=conmethod, connect_isolated=connect_isolated))
+            else:
+                self.sub_ICs.append(PrimitiveInternalCoordinates(mol_frag, connect=connect, addcart=addcart, constraints=constraints, cvals=cvals, connect_isolated=connect_isolated))
 
+    def haveConstraints(self):
+        return []
+
+    def torsionConstraintLinearAngles(self, coords, thre=175):
+        return []
+       
+    def wilsonB(self, xyz, invMW=False):
+        # Separating xyz based on fragment
+        global xyz_frag_t
+        xyz_frag = []
+        xyz_frag_t = xyz_frag
+        index = 0
+        for frag in self.frags:
+            frag_len = len(frag)
+            xyz_frag.append(xyz[(index*3) : (index + frag_len)*3])
+            index += frag_len
+
+        # cached_bmatrix_used = False
+        # global CacheWarning
+        xhash = hash(xyz.tobytes())
+        # if xhash in self.stored_wilsonB:
+            # ans = self.stored_wilsonB[xhash]
+            # logger.info("Using cached B-matrix : %i from end\n" % (len(self.stored_wilsonB) - list(self.stored_wilsonB.keys()).index(xhash)))
+            # cached_bmatrix_used = True
+            # return ans
+
+        # Allocate an empty matrix, block diagonal matrix; will be the full size
+        Der = self.derivatives(xyz)
+        global der_test
+        der_test = Der 
+        
+        current_col = 0
+        current_row = 0
+        wilsonB_blocks = []
+        for frag in range(len(Der)):
+            block = []
+            for n in range(Der[frag].shape[0]):
+                block.append(Der[frag][n].flatten())
+                current_row += 1
+            block = np.array(block)
+            wilsonB_blocks.append(block)
+            current_col += (Der[frag].shape[1] * Der[frag].shape[2])
+
+        self.stored_wilsonB[xhash] = wilsonB_blocks[:]
+        # self.trimCache()
+        # if len(self.stored_wilsonB) > 10000 and not CacheWarning:
+            # logger.warning("\x1b[91mWarning: more than 10000 B-matrices stored, memory leaks likely\x1b[0m\n")
+            # CacheWarning = True
+
+        if invMW:
+            ans /= np.tile(np.sqrt(self.mass), (len(self.Internals), 1))
+
+        return wilsonB_blocks
+
+    def GMatrix(self, xyz, invMW = False):
+        """
+        Given Cartesian coordinates xyz, return the G-matrix
+        gven by G = BuBt where u is an arbitrary matrix (default to identity)
+        """
+        # Creating a list of blocks
+        BuBt_blocks = []
+        for Bmat in self.wilsonB(xyz,invMW):
+            BuBt_blocks.append(np.dot(Bmat, Bmat.T))
+        return BuBt_blocks
+
+    def GInverse_SVD(self, xyz, sqrt=False, invMW=False):
+        Inv_blocks = []
+        
+        # Perform singular value decomposition
+        # G-inverse caching
+        
+        # global CacheWarning
+        xhash = hash(xyz.tobytes())
+        # print("In GInverse_SVD: xhash = ", xhash)
+        cached_used_ginverse = False
+        if xhash in self.stored_Ginverse:
+            # Inv = self.stored_Ginverse[xhash]
+            cached_used_ginverse = True
+            # logger.info("Using cached G-inverse: %i from end\n" % (len(self.stored_Ginverse - list(self.stored_Ginverse.keys()).index[xhash])))
+        else:
+            click()
+            loops = 0
+            while True:
+                try:
+                    linalg_result = []
+                    for Gmat in self.GMatrix(xyz, invMW):
+                        time_G = click()
+                        linalg_result.append(np.linalg.svd(Gmat))
+                        time_svd = click()
+                except np.linalg.LinAlgError:
+                    logger.warning("\x1b[1;91m SVD fails (NIC), perturbing coordinates and trying again\x1b[0m\n")
+                    xyz = xyz +1e-2*np.random.random(xyz.shape)
+                    loops +=1
+                    if loops == 10:
+                        raise RuntimeError('SVD failed too many times')
+                    continue
+                break
+            # print("Build G: %.3f SVD: %.3f" % (time_G, time_svd))
+            for frag_result in linalg_result:
+                U, S, VT = frag_result
+                V = VT.T
+                UT = U.T
+                Sinv = np.zeros_like(S)
+                Ssqrt = np.zeros_like(S)
+                LargeVals = 0
+                for ival, value in enumerate(S):
+                    if np.abs(value) > 1e-6:
+                        if sqrt: value = np.sqrt(value)
+                        LargeVals +=1
+                        Sinv[ival] = 1/value
+                        Ssqrt[ival] = value
+
+                Sinv = np.diag(Sinv)
+                Inv_blocks.append(multi_dot([V, Sinv, UT]))
+        # When "sqrt" is True, return the sqrt of the G matrix along with its inverse.
+        # Sqrt of the G matrix is used to calculate gradients and Hessian in mass-weighted IC.
+            # if sqrt:
+                # Ssqrt = np.diag(Ssqrt)
+                # Sqrt = multi_dot([V, Ssqrt, UT])
+                # return Inv, Sqrt
+
+            # self.stored_Ginverse[xhash] = Inv_blocks
+            # self.trimCache()
+            # if len(self.stored_Ginverse) > 10000 and not CacheWarning:
+                # logger.warning("\x1b[91mWarning: more than 10000 G-inverses stored, memory leaks likely\x1b[0m\n")
+                # CacheWarning = True
+                
+        return Inv_blocks
+                    
+    def checkFiniteDifferenceGrad(self, xyz):
+        for i in self.sub_ICs:
+            return self.Prims.checkFiniteDifferenceGrad(xyz)
+
+    def checkFiniteDifferenceHess(self, xyz):
+        for i in self.sub_ICs:
+            return self.Prims.checkFiniteDifferenceHess(xyz)
+
+    def calcGrad(self, xyz, gradx):
+        Bmat = self.wilsonB(xyz)
+        Ginv = self.GInverse_SVD(xyz)
+        Gq = []
+        gradx = np.array(gradx)
+        
+        index = 0
+        for frag in range(len(Ginv)):
+            xyz_count = Bmat[frag].shape[1]
+            Gq.append(multi_dot([Ginv[frag], Bmat[frag], gradx[index:index + xyz_count].T]))
+            index += xyz_count
+
+        Gq = np.concatenate(Gq)
+        
+        return Gq
+
+    def calcHess(self, xyz, gradx, hessx):
+        for i in self.sub_ICs:
+            return self.Prims.calcHess(xyz, gradx, hessx)
+
+    def calcHessCart(self, xyz, gradq, hessq):
+        for i in self.sub_ICs:
+            return self.Prims.calcHessCart(xyz, gradq, hessq)
+        
+    def newCartesian(self, xyz, dQ, verbose=True):
+        cached = self.readCache(xyz, dQ)
+        if cached is not None:
+            # print "Returning cached result"
+            return cached
+        
+        xyz1 = xyz.copy()
+        dQ1 = dQ.copy()
+    
+        # Iterate until convergence
+        microiter = 0
+        ndqs = []
+        rmsds = []
+        self.bork = False
+        # Damping factor
+        damp = 1.0
+        # Function to exit from loop
+        if verbose >= 2: logger.info("    InternalCoordinates.newCartesian converting internal to Cartesian step\n")
+        def finish(microiter, rmsdt, ndqt, xyzsave, xyz_iter1):
+            if ndqt > 1e-1:
+                if verbose: logger.info("      newCartesian Iter: %i Failed to obtain coordinates (rmsd = %.3e |dQ| = %.3e)\n" % (microiter, rmsdt, ndqt))
+                self.bork = True
+                self.writeCache(xyz, dQ, xyz_iter1)
+                return xyz_iter1.flatten()
+            elif ndqt > 1e-3:
+                if verbose: logger.info("      newCartesian Iter: %i Approximatecoordinates obtained (rmsd = %.3e |dQ| = %.3e)\n" % (microiter, rmsdt, ndqt))
+            else:
+                if verbose: logger.info("      newCartesian Iter: %i Cartesian coordinates obtained (rmsd = %.3e |dQ| = %.3e)\n" % (microiter, rmsdt, ndqt))
+            self.writeCache(xyz, dQ, xyzsave)
+            return xyzsave.flatten()
+        fail_counter = 0
+        
+        while True:
+            microiter += 1
+            dxyz = []
+            xyz2 = []
+            Bmat = self.wilsonB(xyz1)
+            Ginv = self.GInverse_SVD(xyz1)
+
+            index = 0
+            for frag in range(len(Ginv)):
+                ic_count = Ginv[frag].shape[0]
+                # Get new Cartesian Coordinates 
+                dxyz.append(damp*multi_dot([Bmat[frag].T, Ginv[frag], dQ1[index:index + ic_count].T]))
+                index += ic_count
+                
+            dxyz = np.concatenate(dxyz)
+            xyz2 = xyz1 + np.array(dxyz).flatten()
+            
+            if microiter == 1:
+                xyzsave = xyz2.copy()
+                xyz_iter1 = xyz2.copy()
+            # Calculate the actual change in internal coordinates
+            dQ_actual = self.calcDiff(xyz2, xyz1)
+            rmsd = np.sqrt(np.mean((np.array(xyz2-xyz1).flatten())**2))
+            ndq = np.linalg.norm(dQ1-dQ_actual)
+            if len(ndqs) > 0:
+                if ndq > ndqt:
+                    if verbose >= 2: logger.info("      newCartesian Iter: %i Err-dQ (Best) = %.5e (%.5e) RMSD: %.5e Damp: %.5e (Bad)\n" % (microiter, ndq, ndqt, rmsd, damp))
+                    damp /= 2
+                    fail_counter += 1
+                    # xyz2 = xyz1.copy()
+                else:
+                    if verbose >= 2: logger.info("      newCartesian Iter: %i Err-dQ (Best) = %.5e (%.5e) RMSD: %.5e Damp: %.5e (Good)\n" % (microiter, ndq, ndqt, rmsd, damp))
+                    fail_counter = 0
+                    damp = min(damp*1.2, 1.0)
+                    rmsdt = rmsd
+                    ndqt = ndq
+                    xyzsave = xyz2.copy()
+            else:
+                if verbose >= 2: logger.info("      newCartesian Iter: %i Err-dQ = %.5e RMSD: %.5e Damp: %.5e\n" % (microiter, ndq, rmsd, damp))
+                rmsdt = rmsd
+                ndqt = ndq
+            ndqs.append(ndq)
+            rmsds.append(rmsd)
+            # Check convergence / fail criteria
+            if rmsd < 1e-6 or ndq < 1e-6:
+                return finish(microiter, rmsdt, ndqt, xyzsave, xyz_iter1)
+            if fail_counter >= 5:
+                return finish(microiter, rmsdt, ndqt, xyzsave, xyz_iter1)
+            if microiter == 50:
+                return finish(microiter, rmsdt, ndqt, xyzsave, xyz_iter1)
+            # Figure out the further change needed
+            dQ1 = dQ1 - dQ_actual
+            xyz1 = xyz2.copy()
+        
+        
+    def __repr__(self):
+        """
+        Represents the sub ICs in a list
+        """
+        for i in self.sub_ICs:
+            return self.Prims.__repr__()
+        
+    def __eq__(self, other):
+        for i in self.sub_ICs:
+            return self.Prims.__eq__(other)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def update(self, other):
+        for i in self.sub_ICs:
+            return self.Prims.update(other)
+        
+    def resetRotations(self, xyz):
+        for i in self.sub_ICs:
+            return self.Prims.resetRotations(xyz)
+
+    def calculate(self, xyz):
+        # Separating xyz based on fragment
+        xyz_frag = []
+        index = 0
+        for frag in self.frags:
+            frag_len = len(frag)
+            xyz_frag.append(xyz[(index*3) : (index + frag_len)*3])
+            index += frag_len
+
+        ans = []
+        for Internal in range(len(self.sub_ICs)):
+            ans.append(self.sub_ICs[Internal].calculate(xyz_frag[Internal]))
+
+        ans = np.concatenate(ans)
+        return ans
+        
+    def derivatives(self, xyz):
+        # Separating xyz based on fragment
+        xyz_frag = []
+        index = 0
+        for frag in self.frags:
+            frag_len = len(frag)
+            xyz_frag.append(xyz[(index*3) : (index + frag_len)*3])
+            index += frag_len
+
+        ans = []
+        for Internal in range(len(self.sub_ICs)):
+            ans.append(self.sub_ICs[Internal].derivatives(xyz_frag[Internal]))
+        return ans
+            
+    def second_derivatives(self, xyz):
+        # Separating xyz based on fragment
+        xyz_frag = []
+        index = 0
+        for frag in self.frags:
+            frag_len = len(frag)
+            xyz_frag.append(xyz[(index*3) : (index + frag_len)*3])
+            index += frag_len
+            
+        ans = []
+        for Internal in range(len(self.sub_ICs)):
+            ans.append(self.sub_ICs[Internal].second_derivatives(xyz_frag[Internal]))
+        return ans
+
+    def calcDiff(self, xyz1, xyz2):
+        """ Calculate difference in internal coordinates (coord1-coord2), accounting for changes in 2+pi of angles. """
+        # Separating xyz based on fragment
+        xyz_frag1 = []
+        xyz_frag2 = []
+        index = 0
+        for frag in self.frags:
+            frag_len = len(frag)
+            xyz_frag1.append(xyz1[(index*3) : (index + frag_len)*3])
+            xyz_frag2.append(xyz2[(index*3) : (index + frag_len)*3])
+            index += frag_len
+            
+        ans = []
+        for Internal in range(len(self.sub_ICs)):
+            ans.append(self.sub_ICs[Internal].calcDiff(xyz_frag1[Internal],xyz_frag2[Internal]))
+
+        ans = np.concatenate(ans)
+            
+        return ans
+
+    def reorderPrimitives(self):
+        for i in self.sub_ICs:
+            return self.Prims.reorderPrimitives
+
+    def guess_hessian(self, xyz):
+        """ 
+        Build a guess Hessian that roughly follows Schlegel's guidelines. 
+        """
+        # Separating xyz based on fragment
+        xyz_frag = []
+        index = 0
+        for frag in self.frags:
+            frag_len = len(frag)
+            xyz_frag.append(xyz[(index*3) : (index + frag_len)*3])
+            index += frag_len
+            
+        Hdiag = []
+        for Internal in range(len(self.sub_ICs)):
+            H_block = self.sub_ICs[Internal].guess_hessian(xyz_frag[Internal])
+            Hdiag.append(np.diagonal(H_block))
+            
+        Hdiag = np.concatenate(Hdiag)
+        # Place on diagonal of full matrix 
+        return np.diag(Hdiag)
+
+    def setRegularization(self, xyz):
+        return False
+                                   
 class CartesianCoordinates(PrimitiveInternalCoordinates):
     """
     Cartesian coordinate system, written as a kind of internal coordinate class.  
@@ -3940,9 +4415,6 @@ class ChainCoordinates(PrimitiveInternalCoordinates):
     """
     def __init__(self, molecule, connect=False, addcart=False, **kwargs):
         self.stored_wilsonB = OrderedDict()
-        self.stored_Ginverse = OrderedDict()
-        self.stored_MWsqrtG = OrderedDict()
-        self.stored_MWsqrtGinverse = OrderedDict()
         self.connect = connect
         self.addcart = addcart
         self.nim = len(molecule)
@@ -3962,12 +4434,10 @@ class ChainCoordinates(PrimitiveInternalCoordinates):
         for i, imageIC in self.ICIter():
             for ic in imageIC.Internals:
                 self.Internals.append(ImagePrim(ic, self.na, i))
-
-        # 2025/3/12 HP: RMSDisplacement is experimental. It needs to be tested first.
-        #guessw = kwargs.get('guessw', 0.1)
-        #for i, imageIC in self.ICIter():
-        #    self.Internals.append(RMSDisplacement(imageIC, self.na, i-1, i, head=molecule.xyzs[0]*ang2bohr, tail=molecule.xyzs[-1]*ang2bohr, w=guessw))
-        #self.Internals.append(RMSDisplacement(imageIC, self.na, i+1, i, head=molecule.xyzs[0]*ang2bohr, tail=molecule.xyzs[-1]*ang2bohr, w=guessw))
+        guessw = kwargs.get('guessw', 0.1)
+        for i, imageIC in self.ICIter():
+            self.Internals.append(RMSDisplacement(imageIC, self.na, i-1, i, head=molecule.xyzs[0]*ang2bohr, tail=molecule.xyzs[-1]*ang2bohr, w=guessw))
+        self.Internals.append(RMSDisplacement(imageIC, self.na, i+1, i, head=molecule.xyzs[0]*ang2bohr, tail=molecule.xyzs[-1]*ang2bohr, w=guessw))
 
     def __repr__(self):
         lines = ["Internal coordinate system (atoms numbered from 1):"]

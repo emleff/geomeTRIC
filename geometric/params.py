@@ -328,6 +328,7 @@ def parse_optimizer_args(*args):
                           '"cart" = Cartesian coordinate system\n'
                           '"prim" = Primitive (a.k.a redundant internal coordinates)\n '
                           '"dlc" = Delocalized Internal Coordinates,\n'
+                          '"n-tric-p" = Nested Internal Coordinates using Delocalized Internal Coordinates,\n'
                           '"hdlc" = Hybrid Delocalized Internal Coordinates\n'
                           '"tric-p" for primitive Translation-Rotation Internal Coordinates (no delocalization)\n ')
     # TeraChem as a default option is only for the command line interface.

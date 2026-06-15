@@ -34,7 +34,11 @@ POSSIBILITY OF SUCH DAMAGE.
 from __future__ import division
 import numpy as np
 from numpy.linalg import multi_dot
+from scipy.linalg import block_diag
+import time, sys
 
+from . import optimize
+from . import internal
 from .nifty import row, col, flat, invert_svd, bohr2ang, ang2bohr, logger, pvec1d, pmat2d
 from .rotate import get_rot, sorted_eigh
 
@@ -454,7 +458,7 @@ def get_delta_prime_trm(v, X, G, H, IC, verbose=0):
     # LPW 2020-01-24 Testing whether the image potential can be combined with NR for transition state optimization
     # Gs, Hs = image_gradient_hessian(G, H, [0])
     if IC is not None:
-        GC, HC = IC.augmentGH(X, G, H) if (IC.haveConstraints() or IC.rigid) else (G, H)
+        GC, HC = IC.augmentGH(X, G, H) if IC.rigid or (IC.haveConstraints() or IC.rigid) else (G, H)
     else:
         GC, HC = (G, H)
     HT = HC + v*np.eye(len(HC))
@@ -465,20 +469,67 @@ def get_delta_prime_trm(v, X, G, H, IC, verbose=0):
         seig = sorted(np.linalg.eig(HT)[0])
         logger.info("sorted(eig) : % .5e % .5e % .5e ... % .5e % .5e % .5e\n" % (seig[0], seig[1], seig[2], seig[-3], seig[-2], seig[-1]))
     try:
-        Hi = invert_svd(HT)
+        # Implementation of Preconditioned Conjugate Gradient here 
+        index = 0
+        blocks = []
+        frag_len = internal.der_test
+        for frag in range(len(frag_len)):
+            n = len(frag_len[frag])
+            blocks.append(HT[index:index+n, index:index+n])
+            index+=n
+        HT_BD = block_diag(*blocks)
+        errors1, iters1, x_sol1, b1 = preconj_grad(HT, G, HT_BD, nmax=10000) 
     except: # pragma: no cover
         ht_txt = 'HT.v_%.5f.txt' % v
         np.savetxt(ht_txt, HT, fmt='% 14.10f')
         logger.info("\x1b[1;91mSVD Error - saving %s, increasing v by 0.001 and trying again\x1b[0m (% .5f -> % .5f)\n" % (ht_txt, v, v+0.001))
         return get_delta_prime_trm(v+0.001, X, G, H, IC)
-    dyc = flat(-1 * np.dot(Hi,col(GC)))
+    dyc = -1*x_sol1
     dy = dyc[:len(G)]
-
-    d_prime = flat(-1 * np.dot(Hi, col(dyc)))[:len(G)]
+    errors2, iters2, x_sol2, b2 = preconj_grad(HT, dyc, HT_BD, nmax=10000)
+    d_prime = -1*x_sol2 
     dy_prime = np.dot(dy,d_prime)/np.linalg.norm(dy)
-    # sol = flat(0.5*row(dy)*np.matrix(H)*col(dy))[0] + np.dot(dy,G)
     sol = flat(0.5*multi_dot([row(dy),H,col(dy)]))[0] + np.dot(dy,G)
     return dy, sol, dy_prime
+
+def preconj_grad(A, b, B, nmax):
+    """ 
+    Preconditioned Conjugate Gradient Algorithm 
+
+    Parameters:
+    A: matrix of interest
+    b: gradient or vector later defined as the residual 
+    B: Preconditioner 
+    nmax: maximum number of iterations 
+
+    """
+    d = len(b)
+    x = np.zeros(d)
+    iter = 0
+    r = b
+    M = np.linalg.multi_dot([r.T, B, r])
+    p = np.dot(B, r)
+    err = np.sum(np.abs(r))
+    errors = []
+    while err > 10E-6 and iter<nmax: 
+        iter+=1
+        alpha = M / np.linalg.multi_dot([p.T, A, p])
+        x = x+alpha*p
+        r = r-alpha*np.dot(A,p)
+        err = np.sum(np.abs(r))
+        errors.append(err)
+        Mold = M
+        M = np.linalg.multi_dot([r.T, B, r])
+        beta = M/Mold
+        p = np.dot(B,r)+beta*p
+        if err < 10E-6:
+            converged=True
+        else:
+            if iter==nmax:
+                print(f"Failed")
+    x = x.flatten()
+    b = b.flatten()
+    return errors, iter, x, b
 
 def rfo_gen_evp(M, a):
     """

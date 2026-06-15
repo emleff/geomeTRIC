@@ -225,7 +225,8 @@ def geometric_run_json(in_json_dict):
         'prim': (geometric.internal.PrimitiveInternalCoordinates, True, False),
         'dlc': (geometric.internal.DelocalizedInternalCoordinates, True, False),
         'hdlc': (geometric.internal.DelocalizedInternalCoordinates, False, True),
-        'tric': (geometric.internal.DelocalizedInternalCoordinates, False, False)
+        'tric': (geometric.internal.DelocalizedInternalCoordinates, False, False),
+        'n-tric-p': (geometric.internal.NestedInternalCoordinates, False, False)
     }
 
     CoordClass, connect, addcart = CoordSysDict[coordsys.lower()]

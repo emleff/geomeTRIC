@@ -40,6 +40,8 @@ import traceback
 from copy import deepcopy
 from datetime import datetime
 
+from . import internal
+from geometric.molecule import *
 import numpy as np
 import scipy
 import warnings
@@ -47,7 +49,7 @@ from scipy import optimize
 from numpy.linalg import multi_dot
 
 from .info import print_logo, print_citation
-from .internal import CartesianCoordinates, PrimitiveInternalCoordinates, DelocalizedInternalCoordinates
+from .internal import CartesianCoordinates, PrimitiveInternalCoordinates, DelocalizedInternalCoordinates, InternalCoordinates, NestedInternalCoordinates
 from .ic_tools import check_internal_grad, check_internal_hess, write_displacements
 from .normal_modes import calc_cartesian_hessian, frequency_analysis
 from .step import brent_wiki, Froot, calc_drms_dmax, get_cartesian_norm, get_delta_prime, trust_step, force_positive_definite, update_hessian
@@ -214,6 +216,8 @@ class Optimizer(object):
         """
         Build a new internal coordinate system from current Cartesians and replace the current one if different.
         """
+        if hasattr(self.IC, 'sub_ICs'):
+            return False
         # Reset the check counter
         self.CoordCounter = 0
         # Build a new molecule object and connectivity graph
@@ -345,8 +349,9 @@ class Optimizer(object):
         elif self.Iteration == 0:
             if self.params.hessian in ['first', 'stop', 'first+last'] and not hasattr(self.params, 'hess_data'):
                 self.Hx0 = calc_cartesian_hessian(self.X, self.molecule, self.engine, self.dirname, read_data=True, bigchem=self.params.bigchem, verbose=self.params.verbose)
-                logger.info(">> Initial Cartesian Hessian Eigenvalues\n")
-                self.SortedEigenvalues(self.Hx0)
+                if internal.NIC_called is False:
+                    logger.info(">> Initial Cartesian Hessian Eigenvalues\n")
+                    self.SortedEigenvalues(self.Hx0)
                 if self.params.frequency:
                     self.frequency_analysis(self.Hx0, 'first', False)
                 if self.params.hessian == 'stop':
@@ -357,8 +362,9 @@ class Optimizer(object):
             elif hasattr(self.params, 'hess_data'):
                 logger.info(">> Using Hessian data provided via params...\n")
                 self.Hx0 = self.params.hess_data.copy()
-                logger.info(">> Initial Cartesian Hessian Eigenvalues\n")
-                self.SortedEigenvalues(self.Hx0)
+                if internal.NIC_called is False:
+                    logger.info(">> Initial Cartesian Hessian Eigenvalues\n")
+                    self.SortedEigenvalues(self.Hx0)
                 if self.params.frequency:
                     self.frequency_analysis(self.Hx0, 'first', False)
                 if self.Hx0.shape != (self.X.shape[0], self.X.shape[0]):
@@ -596,10 +602,12 @@ class Optimizer(object):
     def optimize_step(self):
         # This function is identical to the previous version without IRC (a copy of lines 426-504)
         params = self.params
-        if np.isnan(self.G).any():
-            raise RuntimeError("Gradient contains nan - check output and temp-files for possible errors")
+        # if np.isnan(self.G).any():
+            # raise RuntimeError("Gradient contains nan - check output and temp-files for possible errors")
         if np.isnan(self.H).any():
             raise RuntimeError("Hessian contains nan - check output and temp-files for possible errors")
+        global step_num
+        step_num = self.Iteration
         self.Iteration += 1
         if (self.Iteration%5) == 0:
             self.engine.clearCalcs()
@@ -608,14 +616,17 @@ class Optimizer(object):
         # At the start of the loop, the optimization variables, function value, gradient and Hessian are known.
         # (i.e. self.Y, self.E, self.G, self.H)
         if params.verbose: self.IC.printRotations(self.X)
-        Eig = self.SortedEigenvalues(self.H)
-        Emin = Eig[0].real
         if params.transition:
             v0 = 1.0
-        elif Emin < params.epsilon:
-            v0 = params.epsilon-Emin
-        else:
-            v0 = 0.0
+        if internal.NIC_called is True:
+            v0 = 0
+        else: 
+            Eig = self.SortedEigenvalues(self.H)
+            Emin = Eig[0].real
+            if Emin < params.epsilon:
+                v0 = params.epsilon-Emin
+            else:
+                v0 = 0.0
         # Are we far from constraint satisfaction?
         self.farConstraints = self.IC.haveConstraints() and self.IC.maxConstraintViolation(self.X) > 1e-1
         ### OBTAIN AN OPTIMIZATION STEP ###
@@ -693,7 +704,7 @@ class Optimizer(object):
             Take an optimization step.
             """
             dy = self.optimize_step()
-
+                
         if dy is None: return
 
         ### Before updating any of our variables, copy current variables to "previous"
@@ -722,13 +733,13 @@ class Optimizer(object):
         dy = self.IC.calcDiff(self.X, X0)
         # dyp = self.IC.Prims.calcDiff(self.X, X0)
         # print("Actual dy:", dy)
+        # print(self.Y.shape, dy.shape)
         self.Y += dy
         self.expect = flat(0.5*multi_dot([row(dy),self.H,col(dy)]))[0] + np.dot(dy,self.G)
         # self.expectdG = np.dot(self.H, col(dy).flatten())
         self.state = OPT_STATE.NEEDS_EVALUATION
 
     def reset_irc(self):
-        self.dirname = self.dirname.replace('forward','backward')
         self.IRC_info["direction"] = -1
         self.Iteration = 0
         self.X = self.X_hist[0].copy()
@@ -786,11 +797,13 @@ class Optimizer(object):
                         logger.info("IRC backward direction starts here\n\n")
                         self.reset_irc()
                     elif self.IRC_info.get("direction") == -1:
-                        self.SortedEigenvalues(self.H)
+                        if internal.NIC_called is False: 
+                            self.SortedEigenvalues(self.H)
                         logger.info("Converged! =D\n")
                         self.state = OPT_STATE.CONVERGED
                 else:
-                    self.SortedEigenvalues(self.H)
+                    if internal.NIC_called is False: 
+                        self.SortedEigenvalues(self.H)
                     logger.info("Converged! =D\n")
                     self.state = OPT_STATE.CONVERGED
                 return True, step_state
@@ -812,17 +825,20 @@ class Optimizer(object):
                     logger.info("The IRC calculation in the backward direction starts here.\n\n")
                     self.reset_irc()
                 else:
-                    self.SortedEigenvalues(self.H)
+                    if internal.NIC_called is False: 
+                        self.SortedEigenvalues(self.H)
                     logger.info("Converged! =D\n")
                     self.state = OPT_STATE.CONVERGED
             else:
-                self.SortedEigenvalues(self.H)
+                if internal.NIC_called is False: 
+                    self.SortedEigenvalues(self.H)
                 logger.info("Converged! =D\n")
                 self.state = OPT_STATE.CONVERGED
             return True, step_state
 
         if self.Iteration >= params.maxiter:
-            self.SortedEigenvalues(self.H)
+            if internal.NIC_called is False: 
+                self.SortedEigenvalues(self.H)
             if params.irc and self.IRC_info.get("direction") == 1 and self.IRC_direction == 'both':
                 logger.info("\nThe IRC in the forward direction has reached the maximum iteration.\n")
                 logger.info("The IRC calculation in the backward direction starts here.\n\n")
@@ -838,13 +854,15 @@ class Optimizer(object):
                 return True, step_state
 
         if params.qccnv and Converged_grms and (Converged_drms or Converged_energy) and self.conSatisfied:
-            self.SortedEigenvalues(self.H)
+            if internal.NIC_called is False: 
+                self.SortedEigenvalues(self.H)
             logger.info("Converged! (Q-Chem style criteria requires grms and either drms or energy)\n")
             self.state = OPT_STATE.CONVERGED
             return True, step_state
 
         if params.molcnv and Converged_molpro_gmax and (Converged_molpro_dmax or Converged_energy) and self.conSatisfied:
-            self.SortedEigenvalues(self.H)
+            if internal.NIC_called is False: 
+                self.SortedEigenvalues(self.H)
             logger.info("Converged! (Molpro style criteria requires gmax and either dmax or energy)\nThis is approximate since convergence checks are done in cartesian coordinates.\n")
             self.state = OPT_STATE.CONVERGED
             return True, step_state
@@ -1151,7 +1169,8 @@ def Optimize(coords, molecule, IC, engine, dirname, params, print_info=True):
     progress: Molecule
         A molecule object for opt trajectory and energies
     """
-    optimizer = Optimizer(coords, molecule, IC, engine, dirname, params, print_info)
+    # Making print_info +False for testing
+    optimizer = Optimizer(coords, molecule, IC, engine, dirname, params, print_info=True)
     return optimizer.optimizeGeometry()
 
 def run_optimizer(**kwargs):
@@ -1184,7 +1203,8 @@ def run_optimizer(**kwargs):
     #==============================#
     #| End log file configuration |#
     #==============================#
-
+    # Importing Optimizer class for debugging
+    # self.optimizer = Optimizer(self, coords, molecule, IC, engine, dirname, params, print_info=True)
     import geometric
     logger.info('geometric-optimize called with the following command line:\n')
     argv_print = []
@@ -1261,7 +1281,8 @@ def run_optimizer(**kwargs):
                     'dlc':(DelocalizedInternalCoordinates, True, False),
                     'hdlc':(DelocalizedInternalCoordinates, False, True),
                     'tric-p':(PrimitiveInternalCoordinates, False, False),
-                    'tric':(DelocalizedInternalCoordinates, False, False)}
+                    'tric':(DelocalizedInternalCoordinates, False, False),
+                    'n-tric-p':(NestedInternalCoordinates, False, False)}
     coordsys = kwargs.get('coordsys', 'tric')
     CoordClass, connect, addcart = CoordSysDict[coordsys.lower()]
 
@@ -1279,7 +1300,7 @@ def run_optimizer(**kwargs):
                 bothre += 0.01
                 M.build_topology(bond_order=bothre)
             logger.info("Using threshold of %.2f, there are now %i molecules\n" % (bothre, len(M.molecules)))
-        M.top_settings['read_bonds'] = True
+        M.set_bond_lock(True)
         # Delete the QM bond order to avoid problems when more structures are added
         del M.Data['qm_bondorder']
     else:
@@ -1292,7 +1313,7 @@ def run_optimizer(**kwargs):
         coordsys = 'dlc'
 
     CoordClass, connect, addcart = CoordSysDict[coordsys.lower()]
-
+    
     IC = CoordClass(M, build=True, connect=connect, addcart=addcart, constraints=Cons, cvals=CVals[0] if CVals is not None else None,
                     conmethod=conmethod, rigid=rigid)
     

@@ -35,3 +35,4 @@ def write_coors_to_xml(M, root_template, filename):
     print(ET.tostring(root).decode("utf-8"), file=fout)
     fout.close()
 
+

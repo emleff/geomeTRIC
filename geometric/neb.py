@@ -47,7 +47,7 @@ from .optimize import Optimize
 from .params import OptParams, NEBParams, parse_neb_args
 from .step import get_delta_prime_trm, brent_wiki, trust_step, calc_drms_dmax
 from .engine import Blank
-from .internal import CartesianCoordinates, PrimitiveInternalCoordinates, DelocalizedInternalCoordinates, ChainCoordinates
+from .internal import CartesianCoordinates, PrimitiveInternalCoordinates, DelocalizedInternalCoordinates, NestedInternalCoordinates, ChainCoordinates
 from .nifty import flat, row, col, createWorkQueue, getWorkQueue, wq_wait, ang2bohr, bohr2ang, kcal2au, au2kcal, au2evang, logger
 from .molecule import EqualSpacing
 from .errors import NEBStructureError, NEBChainShapeError, NEBBandTangentError, NEBBandGradientError
@@ -108,10 +108,11 @@ def CoordinateSystem(M, coordtype, chain=False, guessw=0.1):
         "dlc": (DelocalizedInternalCoordinates, True, False),
         "hdlc": (DelocalizedInternalCoordinates, False, True),
         "tric": (DelocalizedInternalCoordinates, False, False),
+        "n-tric-p":(NestedInternalCoordinates, False, False),
         "tric-p": (PrimitiveInternalCoordinates, False, False),
     }  # Primitive TRIC, i.e. not delocalized
     CoordClass, connect, addcart = CoordSysDict[coordtype]
-    if CoordClass is DelocalizedInternalCoordinates:
+    if CoordClass is DelocalizedInternalCoordinates or NestedInternalCoordinates:
         IC = CoordClass(M, build=True, connect=connect, addcart=addcart)
     elif chain:
         IC = ChainCoordinates(M, connect=connect, addcart=addcart, cartesian=(coordtype == "cart"),

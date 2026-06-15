@@ -325,7 +325,13 @@ def get_molecule_engine(**kwargs):
             threads_enabled = False
         elif engine_str == "quick":
             logger.info("QUICK engine selected. Expecting QUICK input for gradient calculation. \n")
-            M = Molecule(inputf, radii=radii, fragment=frag)
+            if pdb is not None:
+                M = Molecule(pdb, radii=radii, fragment=frag)
+                M1 = Molecule(inputf, radii=radii)
+                for i in ['elem', 'charge', 'mult']:
+                    M.Data[i] = M1.Data[i]
+            else:
+                M = Molecule(inputf, radii=radii, fragment=frag)
             # now work out which quick version we have
             if shutil.which("quick.cuda.MPI") is not None:
                 exe = "quick.cuda.MPI"
@@ -352,10 +358,23 @@ def get_molecule_engine(**kwargs):
             if program is None:
                 raise RuntimeError("QCEngineAPI option requires a qce_program option")
             engine = QCEngineAPI(schema, program)
-            M = engine.M
+            if pdb is not None:
+                M = Molecule(pdb, radii=radii, fragment=frag)
+                M1 = engine.M
+                for i in ['elem', 'charge', 'mult']:
+                    M.Data[i] = M1.Data[i]
+            else:
+                M = engine.M
         elif engine_str == "ase":
             logger.info("ASE-Calculator engine selected. \n")
-            M = Molecule(kwargs.get("input"), radii=radii, fragment=frag)
+            if pdb is not None:
+                M = Molecule(pdb, radii=radii, fragment=frag)
+                M1 = Molecule(kwargs.get("input"), radii=radii, fragment=frag)
+                for i in ['elem', 'charge', 'mult']:
+                    if hasattr(M, i):
+                        M.Data[i] = M1.Data[i]
+            else:
+                M = Molecule(kwargs.get("input"), radii=radii, fragment=frag)
 
             ase_class_name = kwargs.get("ase_class")
             ase_kwargs = kwargs.get("ase_kwargs", "{}")
